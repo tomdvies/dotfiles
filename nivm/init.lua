@@ -18,7 +18,7 @@ vim.g.mapleader = ","
 require('mini.deps').setup({ path = { package = path_package } })
 local add = MiniDeps.add
 
-require('mini.animate').setup({cursor = {enable=false}})
+-- require('mini.animate').setup({cursor = {enable=false}})
 require('mini.basics').setup({mappings = {windows = true}})
 require('mini.statusline').setup()
 require('mini.cursorword').setup()
@@ -57,8 +57,8 @@ add({
   hooks = { post_checkout = function() vim.cmd('TSUpdate') end },
 })
 require('nvim-treesitter.configs').setup({
-  ensure_installed = { 'lua', 'vimdoc' , 'python'},
-  highlight = { enable = true },
+  ensure_installed = { 'lua', 'vimdoc' , 'python', 'rust'},
+  highlight = { enable = true ,disable ={"rust"}},
 })
 
 -- python setup
@@ -97,7 +97,17 @@ require("lspconfig").pyright.setup({
 require("lspconfig").taplo.setup({
     capabilities = lspCapabilities,
 })
-require'lspconfig'.rust_analyzer.setup{}
+require'lspconfig'.rust_analyzer.setup{
+  ---@param client lsp.Client
+ settings = {
+    ['rust-analyzer'] = {
+      check = {
+        --ignore = {"unused_imports", "unused_variables"};
+      }
+    }
+  }
+}
+
 require("lspconfig").typos_lsp.setup({})
 require("lspconfig").ruff.setup({
     -- organize imports disabled, since we are already using `isort` for that
@@ -155,7 +165,8 @@ add({
 add({source = 'dcampos/nvim-snippy'})
 add({source = 'dcampos/cmp-snippy'})
 add({source = 'honza/vim-snippets'})
-require('snippy').setup({})
+snippy = require('snippy')
+snippy.setup({})
 
 local has_words_before = function()
   unpack = unpack or table.unpack
@@ -163,12 +174,16 @@ local has_words_before = function()
   return col ~= 0 and vim.api.nvim_buf_get_lines(0, line - 1, line, true)[1]:sub(col, col):match("%s") == nil
 end
 
-local snippy = require('snippy')
 local cmp = require("cmp")
+
 cmp.setup({
+    completion = {
+    completeopt = 'menu,menuone,noselect', -- remove `noselect`.
+  },
+  preselect = cmp.PreselectMode.None,
     -- register the lsp as completion provider
     sources = cmp.config.sources({
-        { name = "nvim_lsp" },
+        { name = "nvim_lsp"}, {name="snippy"},
     }),
     snippet = {
       -- REQUIRED - you must specify a snippet engine
@@ -181,7 +196,7 @@ cmp.setup({
       end,
     },
     mapping = {
-    ["<Tab>"] = cmp.mapping(function(fallback)
+        ["<Tab>"] = cmp.mapping(function(fallback)
       if cmp.visible() then
         cmp.select_next_item()
       elseif snippy.can_expand_or_advance() then
@@ -202,9 +217,21 @@ cmp.setup({
         fallback()
       end
     end, { "i", "s" }),
+
+    ["<c-z>"] = cmp.mapping(function(fallback)
+        if snippy.can_expand_or_advance() then
+            snippy.expand_or_advance()
+        elseif has_words_before() then
+            cmp.complete()
+        else
+            fallback()
+        end
+    end, {"i","s"}),
   },
 
 })
+
+--vim.o.completeopt = 'menu,menuone,noselect'
 
 add({source = 'Vigemus/iron.nvim'})
 local iron = require("iron.core")
@@ -281,6 +308,26 @@ require('modus-themes').setup({
         colors.bg_active = "#000000"
     end
 })
+
+--add({source = "https://gitlab.com/HiPhish/rainbow-delimiters.nvim"})
+--local rainbow_delimiters = require 'rainbow-delimiters'
+--require('rainbow-delimiters.setup').setup {
+--    strategy = {
+--        [''] = rainbow_delimiters.strategy['global'],
+--        vim = rainbow_delimiters.strategy['local'],
+--    },
+--    query = {
+--        [''] = 'rainbow-delimiters',
+--        lua = 'rainbow-blocks',
+--    },
+--    priority = {
+--        [''] = 110,
+--        lua = 210,
+--    },
+--
+--}
+
+
 
 
 if vim.env.ITERM_PROFILE ~= "dropdown" then
